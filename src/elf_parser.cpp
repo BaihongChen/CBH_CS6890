@@ -1,6 +1,7 @@
 #include "elf_parser.hpp"
 
 #include <cstddef>
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <new>
@@ -340,6 +341,14 @@ ParseResult parse_elf_bytes(const std::vector<std::uint8_t> &bytes) {
 }
 
 ParseResult parse_elf_file(const std::string &path) {
+  std::error_code status_error;
+  const auto file_status = std::filesystem::status(path, status_error);
+  if (!status_error && std::filesystem::exists(file_status) &&
+      !std::filesystem::is_regular_file(file_status)) {
+    return failure(ParseStatus::IoError,
+                   "input is not a regular file: '" + path + "'");
+  }
+
   std::ifstream input{path, std::ios::binary | std::ios::ate};
   if (!input) {
     return failure(ParseStatus::IoError, "unable to open '" + path + "'");
